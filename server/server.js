@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const port = process.env.PORT;
@@ -23,6 +23,37 @@ const client = new MongoClient(uri, {
   try {
     // apies
     await client.connect();
+    const db = client.db("jobsDB");
+    const jobsColletion = db.collection("jobs-collection");
+
+    // get/read all job
+    app.get("/jobs", async (_, res) => {
+      try {
+        const jobs = await jobsColletion.find().toArray();
+        res.send(jobs);
+      } catch (error) {
+        res.status(500).send(`server error: ${error}`);
+      }
+    });
+
+    // get/read one job
+    app.get("/jobs/:id", async (req, res) => {
+      try {
+        const query = { _id: new ObjectId(req.params.id) };
+      } catch (error) {
+        res.status(500).send(`server error: ${error}`);
+      }
+    });
+    //  post/create new job : as a reqruter -
+    app.post("/jobs", async (req, res) => {
+      try {
+        const data = req.body;
+        const result = await jobsColletion.insertOne(data);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send(`server error: ${error}`);
+      }
+    });
   } catch (err) {
     console.dir(err);
   }
