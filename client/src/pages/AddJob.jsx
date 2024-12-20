@@ -14,9 +14,11 @@ const AddJob = () => {
   const addJobHandler = async (data) => {
     try {
       data.deadline = startDate.toISOString().substring(0, 10);
+      data.email = user.email;
 
       await axios.post(`${import.meta.env.VITE_API_URL}/jobs`, data);
       toast.success("Job Added Successfylly!");
+      console.log(data);
     } catch (error) {
       console.log(error);
     }
@@ -51,7 +53,6 @@ const AddJob = () => {
                 type="email"
                 defaultValue={user?.email}
                 readOnly
-                {...register("email")}
                 disabled
                 className="block w-full px-4 py-2 mt-2 text-gray-700 bg-white border border-gray-200 rounded-md  focus:border-blue-400 focus:ring-blue-300 focus:ring-opacity-40  focus:outline-none focus:ring"
               />

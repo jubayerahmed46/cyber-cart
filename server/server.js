@@ -24,12 +24,20 @@ const client = new MongoClient(uri, {
     // apies
     await client.connect();
     const db = client.db("jobsDB");
-    const jobsColletion = db.collection("jobs-collection");
+    const jobsCollection = db.collection("jobs-collection");
 
     // get/read all job
-    app.get("/jobs", async (_, res) => {
+    app.get("/jobs", async (req, res) => {
       try {
-        const jobs = await jobsColletion.find().toArray();
+        let query = {};
+        if (req?.query?.email) {
+          query = { email: req?.query?.email };
+        }
+        const jobs = await jobsCollection.find(query).toArray();
+
+        if (!jobs.length) {
+          res.status(404).send({ message: "No Data Fount!" });
+        }
         res.send(jobs);
       } catch (error) {
         res.status(500).send(`server error: ${error}`);
@@ -40,6 +48,8 @@ const client = new MongoClient(uri, {
     app.get("/jobs/:id", async (req, res) => {
       try {
         const query = { _id: new ObjectId(req.params.id) };
+        const result = await jobsCollection.findOne(query);
+        res.send(result);
       } catch (error) {
         res.status(500).send(`server error: ${error}`);
       }
@@ -48,7 +58,7 @@ const client = new MongoClient(uri, {
     app.post("/jobs", async (req, res) => {
       try {
         const data = req.body;
-        const result = await jobsColletion.insertOne(data);
+        const result = await jobsCollection.insertOne(data);
         res.send(result);
       } catch (error) {
         res.status(500).send(`server error: ${error}`);
