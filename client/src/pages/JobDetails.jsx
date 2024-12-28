@@ -1,27 +1,28 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useParams } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import useAxiosSecure from "../hooks/useAxiosSecure";
+import { compareAsc } from "date-fns";
 
 const JobDetails = () => {
   const [startDate, setStartDate] = useState(new Date());
   const { id } = useParams();
   const [job, setJob] = useState({});
   const { user } = useAuth();
+  const instance = useAxiosSecure();
 
   useEffect(() => {
     (async function () {
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/jobs/${id}`
-      );
+      const { data } = await instance.get(`/jobs/${id}`);
       setJob(data);
     })();
-  }, [id]);
+  }, [id, instance]);
 
   const {
+    _id,
     email,
     job_title,
     description,
@@ -30,6 +31,61 @@ const JobDetails = () => {
     minPrice,
     maxPrice,
   } = job;
+
+  const bidHandler = (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const bidPrice = form.price.value;
+    const sellerEmail = user.email;
+    const jobTitle = job_title;
+    const buyerEmail = email;
+    const deadline = startDate;
+    const comment = form.comment.value;
+
+    // 1. if the job deadline is less-than of current date don't allow user to place bid
+    //  Note: __date-fns__ Compare the two dates and return 1 if the first date is after the second, -1 if the first date is before the second or 0 if dates are equal.
+    // console.log(compareAsc(new Date(), new Date(job.deadline))); // 1
+    if (compareAsc(new Date(), new Date(job.deadline)) === 1) {
+      return console.log("The Deadline is crosed!");
+    }
+
+    // 2. if the seller bid deadline is greater-than job deadline return them
+    if (compareAsc(new Date(deadline), new Date(job.deadline)) === 1) {
+      return console.log("opps, you deadline is not capable!");
+    }
+    // 3. if buyer amount range and seller amount range greater or less return them
+    if (
+      parseInt(bidPrice) < parseInt(minPrice) ||
+      parseInt(bidPrice) > parseInt(maxPrice)
+    ) {
+      return console.log("Your price range problem please fix it!");
+    }
+
+    // fynaly send the request to the server
+    const bidData = {
+      jobId: _id,
+      jobTitle,
+      bidPrice,
+      deadline,
+      category,
+      comment,
+      sellerEmail,
+      buyerEmail,
+      status: "Pending",
+    };
+
+    console.log(bidData);
+
+    (async function () {
+      try {
+        const res = await instance.post("/bids", bidData);
+        console.log(res.data);
+      } catch (error) {
+        console.log(error);
+      }
+    })();
+  };
+
   return (
     <div className="flex flex-col md:flex-row justify-around gap-5  items-center min-h-[calc(100vh-306px)] md:max-w-screen-xl mx-auto ">
       {/* Job Details */}
@@ -54,7 +110,9 @@ const JobDetails = () => {
           </p>
           <div className="flex items-center gap-5">
             <div>
-              <p className="mt-2 text-sm  text-gray-600 ">Email: {email}</p>
+              <p className="mt-2 text-sm  text-gray-600 ">
+                Email: {email || "john@gamil.com"}
+              </p>
             </div>
           </div>
           <p className="mt-6 text-lg font-bold text-gray-600 ">
@@ -68,7 +126,7 @@ const JobDetails = () => {
           Place A Bid
         </h2>
 
-        <form>
+        <form onSubmit={bidHandler}>
           <div className="grid grid-cols-1 gap-6 mt-4 sm:grid-cols-2">
             <div>
               <label className="text-gray-700 " htmlFor="price">
@@ -122,9 +180,11 @@ const JobDetails = () => {
 
           <div className="flex justify-end mt-6">
             <button
-              // onClick={bidHandler}
+              disabled={user.email === job.email}
               type="submit"
-              className="px-8 py-2.5 leading-5 text-white transition-colors duration-300 transform bg-gray-700 rounded-md hover:bg-gray-600 focus:outline-none focus:bg-gray-600"
+              className={`px-8 py-2.5 leading-5 text-white transition-colors duration-300 transform  rounded-md hover:bg-gray-600 focus:outline-none focus:bg-gray-600 ${
+                user.email === job.email ? "bg-gray-400" : "bg-gray-700"
+              }`}
             >
               Place Bid
             </button>

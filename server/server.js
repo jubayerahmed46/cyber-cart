@@ -11,6 +11,8 @@ app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0n5ia.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
+// const uri = "mongodb://localhost:5173/";
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -25,10 +27,12 @@ const client = new MongoClient(uri, {
     await client.connect();
     const db = client.db("jobsDB");
     const jobsCollection = db.collection("jobs-collection");
+    const bidCollection = db.collection("bidCollection");
 
     // get/read all job
     app.get("/jobs", async (req, res) => {
       try {
+        console.log("requested!");
         let query = {};
         if (req?.query?.email) {
           query = { email: req?.query?.email };
@@ -40,7 +44,7 @@ const client = new MongoClient(uri, {
         }
         res.send(jobs);
       } catch (error) {
-        res.status(500).send(`server error: ${error}`);
+        res.status(500).send(`server error: ${error.message}`);
       }
     });
 
@@ -51,7 +55,39 @@ const client = new MongoClient(uri, {
         const result = await jobsCollection.findOne(query);
         res.send(result);
       } catch (error) {
-        res.status(500).send(`server error: ${error}`);
+        res.status(500).send(`server error: ${error.message}`);
+      }
+    });
+    // get all bids for a specific user based on : email
+    app.get("/bids/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const query = { sellerEmail: email };
+        const result = await bidCollection.find(query).toArray();
+
+        if (!result.length) {
+          return res.status(404).send({ message: "Bids not found!" });
+        }
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send(`server error: ${error.message}`);
+      }
+    });
+    // get all bid request for a buyer
+    app.get("/requested-bids/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const query = { buyerEmail: email };
+        const result = await bidCollection.find(query).toArray();
+
+        if (!result.length) {
+          return res.status(404).send({ message: "Bids not found!" });
+        }
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send(`server error: ${error.message}`);
       }
     });
     //  post/create new job : as a reqruter -
@@ -61,7 +97,59 @@ const client = new MongoClient(uri, {
         const result = await jobsCollection.insertOne(data);
         res.send(result);
       } catch (error) {
-        res.status(500).send(`server error: ${error}`);
+        res.status(500).send(`server error: ${error.message}`);
+      }
+    });
+    // post a bid for a specific job
+    app.post("/bids", async (req, res) => {
+      try {
+        console.log(req.body);
+        const doc = req.body;
+        const result = await bidCollection.insertOne(doc);
+        if (result.acknowledged) {
+          const update = await jobsCollection.updateOne(
+            { _id: new ObjectId(doc.jobId) },
+            { $inc: { bidCount: 1 } },
+            { upsert: true }
+          );
+          console.log(update);
+        }
+        res.send(result);
+      } catch (error) {
+        res.status(500).send(`server error: ${error.message}`);
+      }
+    });
+    //  update bid status
+    app.patch("/bids/updadte-status/:bidId", async (req, res) => {
+      try {
+        console.log(
+          req.body,
+          "bidId id:",
+          req.params.bidId,
+          "------> from line no < 125"
+        );
+        const query = { _id: new ObjectId(req.params.bidId) };
+        const update = {
+          $set: {
+            status: req.body.currStatus,
+          },
+        };
+        const result = await bidCollection.updateOne(query, update);
+        console.log(result);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send(`server error: ${error.message}`);
+      }
+    });
+    // delete my post
+    app.delete("/jobs/delete/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await jobsCollection.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send(`server error: ${error.message}`);
       }
     });
   } catch (err) {

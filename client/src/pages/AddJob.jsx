@@ -5,20 +5,22 @@ import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
 import useAuth from "../hooks/useAuth";
 import toast from "react-hot-toast";
+import useAxiosSecure from "../hooks/useAxiosSecure";
 
 const AddJob = () => {
   const [startDate, setStartDate] = useState(new Date());
   const { register, handleSubmit } = useForm();
   const { user } = useAuth();
+  const instance = useAxiosSecure();
 
   const addJobHandler = async (data) => {
     try {
       data.deadline = startDate.toISOString().substring(0, 10);
       data.email = user.email;
+      data.bidCount = 0;
 
-      await axios.post(`${import.meta.env.VITE_API_URL}/jobs`, data);
+      await instance.post(`/jobs`, data);
       toast.success("Job Added Successfylly!");
-      console.log(data);
     } catch (error) {
       console.log(error);
     }

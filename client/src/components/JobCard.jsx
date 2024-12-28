@@ -10,7 +10,8 @@ const JobCard = ({
     category,
     minPrice,
     maxPrice,
-    total_bids,
+    bidCount,
+
     _id,
   },
 }) => {
@@ -44,7 +45,7 @@ const JobCard = ({
           Range: ${minPrice} - ${maxPrice}
         </p>
         <p className="mt-2 text-sm font-bold text-gray-600 ">
-          Total Bids: {total_bids}
+          Total Bids: {bidCount || 0}
         </p>
       </div>
     </Link>

@@ -3,16 +3,18 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import JobCard from "../components/JobCard";
+import useAxiosSecure from "../hooks/useAxiosSecure";
 
 const AllJobs = () => {
   const [allJob, setAllJob] = useState([]);
+  const instance = useAxiosSecure();
 
   useEffect(() => {
     (async function () {
-      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/jobs`);
+      const { data } = await instance.get(`/jobs`);
       setAllJob(data);
     })();
-  }, []);
+  }, [instance]);
 
   return (
     <div className="container px-6 py-10 mx-auto min-h-[calc(100vh-306px)] flex flex-col justify-between">

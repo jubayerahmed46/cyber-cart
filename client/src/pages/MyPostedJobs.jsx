@@ -2,31 +2,80 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import toast from "react-hot-toast";
+import useAxiosSecure from "../hooks/useAxiosSecure";
 
 const MyPostedJobs = () => {
   const [jobs, setJobs] = useState([]);
   const { user } = useAuth();
+  const instance = useAxiosSecure();
+
   useEffect(() => {
     try {
       if (user?.email) {
         (async function () {
-          const { data } = await axios.get(
-            `${import.meta.env.VITE_API_URL}/jobs?email=${user.email}`
-          );
+          const { data } = await instance.get(`/jobs?email=${user.email}`);
           setJobs(data);
         })();
       }
     } catch (error) {
       console.log(error);
     }
-  }, [user]);
+  }, [user, instance]);
+
+  const handleDelete = (id) => {
+    const deleting = async () => {
+      try {
+        const response = await axios.delete(
+          `${import.meta.env.VITE_API_URL}/jobs/delete/${id}`,
+          {}
+        );
+        if (response.status === 200) {
+          const filteringDeletedJob = jobs.filter((job) => job._id !== id);
+          setJobs(filteringDeletedJob);
+          return Promise.resolve();
+        } else {
+          return Promise.reject();
+        }
+      } catch (err) {
+        return Promise.reject();
+      }
+    };
+    const yesDelete = (t) => {
+      toast.promise(deleting(), {
+        loading: "Deleting...",
+        success: <b>Deleted Successfull!</b>,
+        error: <b>Deleting feiled.</b>,
+      });
+
+      toast.dismiss(t.id);
+    };
+
+    toast((t) => (
+      <span>
+        Are you <b>sure</b>?
+        <button
+          className="text-sm bg-gray-400 p-1 rounded-sm"
+          onClick={() => toast.dismiss(t.id)}
+        >
+          cancel
+        </button>
+        <button
+          className="ml-2 text-sm bg-orange-400 p-1 rounded-sm"
+          onClick={() => yesDelete(t)}
+        >
+          delete
+        </button>
+      </span>
+    ));
+  };
   return (
     <section className="container px-4 mx-auto pt-12">
       <div className="flex items-center gap-x-3">
         <h2 className="text-lg font-medium text-gray-800 ">My Posted Jobs</h2>
 
         <span className="px-3 py-1 text-xs text-blue-600 bg-blue-100 rounded-full ">
-          4 Job
+          {jobs.length} Job
         </span>
       </div>
 
@@ -117,7 +166,10 @@ const MyPostedJobs = () => {
                         </td>
                         <td className="px-4 py-4 text-sm whitespace-nowrap">
                           <div className="flex items-center gap-x-6">
-                            <button className="text-gray-500 transition-colors duration-200   hover:text-red-500 focus:outline-none">
+                            <button
+                              onClick={() => handleDelete(job._id)}
+                              className="text-gray-500 transition-colors duration-200   hover:text-red-500 focus:outline-none"
+                            >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
