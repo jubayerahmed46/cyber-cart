@@ -11,8 +11,8 @@ const MyBids = () => {
   useEffect(() => {
     (async function () {
       try {
-        const res = await instance.get(`/bids/${user.email}`);
-        setBids(res.data);
+        const res = await instance.get(`/bids/${user?.email}`);
+        setBids(res?.data ? res?.data : []);
       } catch (error) {
         console.log(error);
       }

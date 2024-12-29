@@ -32,7 +32,6 @@ const client = new MongoClient(uri, {
     // get/read all job
     app.get("/jobs", async (req, res) => {
       try {
-        console.log("requested!");
         let query = {};
         if (req?.query?.email) {
           query = { email: req?.query?.email };
@@ -51,6 +50,7 @@ const client = new MongoClient(uri, {
     // get/read one job
     app.get("/jobs/:id", async (req, res) => {
       try {
+        console.log(req.params);
         const query = { _id: new ObjectId(req.params.id) };
         const result = await jobsCollection.findOne(query);
         res.send(result);
@@ -103,8 +103,15 @@ const client = new MongoClient(uri, {
     // post a bid for a specific job
     app.post("/bids", async (req, res) => {
       try {
-        console.log(req.body);
         const doc = req.body;
+
+        const validedIsAlreadyBidded = await bidCollection.findOne({
+          sellerEmail: doc.sellerEmail,
+        });
+        if (validedIsAlreadyBidded) {
+          return res.status(403).send({ message: "Already Bidded" });
+        }
+
         const result = await bidCollection.insertOne(doc);
         if (result.acknowledged) {
           const update = await jobsCollection.updateOne(
@@ -114,6 +121,19 @@ const client = new MongoClient(uri, {
           );
           console.log(update);
         }
+        res.send(result);
+      } catch (error) {
+        res.status(500).send(`server error: ${error.message}`);
+      }
+    });
+    // update job  - /jobs/update/
+    app.patch("/jobs/update/:id", async (req, res) => {
+      try {
+        const query = { _id: new ObjectId(req.params.id) };
+        const updatedDoc = {
+          $set: req.body,
+        };
+        const result = await jobsCollection.updateOne(query, updatedDoc);
         res.send(result);
       } catch (error) {
         res.status(500).send(`server error: ${error.message}`);

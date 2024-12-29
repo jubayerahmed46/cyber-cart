@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import useAxiosSecure from "../hooks/useAxiosSecure";
 import { compareAsc } from "date-fns";
+import toast from "react-hot-toast";
 
 const JobDetails = () => {
   const [startDate, setStartDate] = useState(new Date());
@@ -74,12 +75,15 @@ const JobDetails = () => {
       status: "Pending",
     };
 
-    console.log(bidData);
-
     (async function () {
       try {
         const res = await instance.post("/bids", bidData);
-        console.log(res.data);
+        if (!res?.data?.acknowledged) {
+          toast.error("You Have already bidded on this job!");
+        } else {
+          toast.success("Thank You for your bidding.");
+        }
+        console.log(res);
       } catch (error) {
         console.log(error);
       }
